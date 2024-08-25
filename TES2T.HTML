@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tres en Ralla Dos</title>
+    <style>
+        body {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            background-color: #f7fafc;
+            margin: 0;
+            font-family: Arial, sans-serif;
+        }
+        h1 {
+            font-size: 2rem;
+            margin-bottom: 20px;
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(3, 80px);
+            grid-gap: 10px;
+            margin-bottom: 20px;
+        }
+        .cell {
+            width: 80px;
+            height: 80px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 1px solid #cbd5e0;
+            cursor: pointer;
+            position: relative;
+        }
+        .cell.blue div {
+            width: 4px;
+            height: 100%;
+            background-color: #4299e1;
+        }
+        .cell.red div {
+            width: 100%;
+            height: 4px;
+            background-color: #f56565;
+        }
+        .cell.blueCross div,
+        .cell.redCross div {
+            position: absolute;
+        }
+        .cell.blueCross div:first-child {
+            width: 4px;
+            height: 100%;
+            background-color: #4299e1;
+        }
+        .cell.blueCross div:last-child {
+            width: 100%;
+            height: 4px;
+            background-color: #f56565;
+        }
+        .cell.redCross div:first-child {
+            width: 100%;
+            height: 4px;
+            background-color: #f56565;
+        }
+        .cell.redCross div:last-child {
+            width: 4px;
+            height: 100%;
+            background-color: #4299e1;
+        }
+        .alert {
+            display: flex;
+            align-items: center;
+            margin-bottom: 20px;
+            padding: 10px;
+            border: 1px solid #cbd5e0;
+            border-radius: 5px;
+            background-color: #edf2f7;
+        }
+        .alert-title {
+            font-weight: bold;
+            margin-right: 10px;
+        }
+        button {
+            padding: 10px 20px;
+            background-color: #4299e1;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #2b6cb0;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Tres en Ralla Dos</h1>
+    <div id="grid" class="grid"></div>
+    <div id="alert" class="alert" style="display: none;">
+        <span id="alertTitle" class="alert-title"></span>
+        <span id="alertDescription"></span>
+    </div>
+    <button onclick="resetGame()">Reset Game</button>
+
+    <script>
+        const WINNING_COMBINATIONS = [
+            [0, 1, 2], [3, 4, 5], [6, 7, 8],
+            [0, 3, 6], [1, 4, 7], [2, 5, 8],
+            [0, 4, 8], [2, 4, 6]
+        ];
+
+        let board = Array(9).fill('empty');
+        let currentPlayer = 'blue';
+        let gamePhase = 'filling';
+        let winner = null;
+
+        function createCell(index) {
+            const cell = document.createElement('div');
+            cell.className = 'cell';
+            cell.addEventListener('click', () => handleCellClick(index));
+            return cell;
+        }
+
+        function renderBoard() {
+            const grid = document.getElementById('grid');
+            grid.innerHTML = '';
+            board.forEach((cellState, index) => {
+                const cell = createCell(index);
+                cell.classList.add(cellState);
+                if (cellState === 'blue') {
+                    cell.innerHTML = '<div></div>';
+                } else if (cellState === 'red') {
+                    cell.innerHTML = '<div></div>';
+                } else if (cellState === 'blueCross') {
+                    cell.innerHTML = '<div></div><div></div>';
+                } else if (cellState === 'redCross') {
+                    cell.innerHTML = '<div></div><div></div>';
+                }
+                grid.appendChild(cell);
+            });
+        }
+
+        function handleCellClick(index) {
+            if (winner) return;
+
+            if (gamePhase === 'filling' && board[index] === 'empty') {
+                board[index] = currentPlayer;
+                currentPlayer = currentPlayer === 'blue' ? 'red' : 'blue';
+
+                if (board.every(cell => cell !== 'empty')) {
+                    gamePhase = 'crossing';
+                }
+            } else if (gamePhase === 'crossing') {
+                if (currentPlayer === 'blue' && board[index] === 'red') {
+                    board[index] = 'blueCross';
+                    currentPlayer = 'red';
+                } else if (currentPlayer === 'red' && board[index] === 'blue') {
+                    board[index] = 'redCross';
+                    currentPlayer = 'blue';
+                }
+            }
+            renderBoard();
+            checkWinner();
+            updateAlert();
+        }
+
+        function checkWinner() {
+            for (let combo of WINNING_COMBINATIONS) {
+                const [a, b, c] = combo;
+                if (
+                    board[a] === 'blueCross' && board[b] === 'blueCross' && board[c] === 'blueCross' ||
+                    board[a] === 'redCross' && board[b] === 'redCross' && board[c] === 'redCross'
+                ) {
+                    winner = board[a] === 'blueCross' ? 'blue' : 'red';
+                    break;
+                }
+            }
+        }
+
+        function updateAlert() {
+            const alert = document.getElementById('alert');
+            const alertTitle = document.getElementById('alertTitle');
+            const alertDescription = document.getElementById('alertDescription');
+
+            if (winner) {
+                alertTitle.innerText = 'Game Over!';
+                alertDescription.innerText = `Player ${winner} wins!`;
+                alert.style.display = 'flex';
+            } else {
+                alertTitle.innerText = 'Current Turn';
+                alertDescription.innerText = `Player ${currentPlayer}'s turn (${gamePhase === 'filling' ? 'Filling' : 'Crossing'} phase)`;
+                alert.style.display = 'flex';
+            }
+        }
+
+        function resetGame() {
+            board = Array(9).fill('empty');
+            currentPlayer = 'blue';
+            gamePhase = 'filling';
+            winner = null;
+            renderBoard();
+            updateAlert();
+        }
+
+        // Initialize the game
+        renderBoard();
+        updateAlert();
+    </script>
+
+</body>
+</html>
